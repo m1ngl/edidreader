@@ -9,3 +9,5 @@ $ ./main.py edid.bin
 ```bash
 $ ./main.py /sys/class/drm/card0-eDP-0/edid
 ```
+
+### 这个脚本还在开发中...
