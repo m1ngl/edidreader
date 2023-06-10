@@ -417,7 +417,7 @@ with open(file, 'rb') as f:
     for x in timing_table:
         print("\t", x, " => ", timing_table[x])
     print("可用的横向像素数量(可能不准确):", pixel_bytes)
-    print("屏占比(可能不准确):", propTable(getBytes(edid.screenInfo32[0])))
+    print("屏幕尺寸比例(可能不准确):", propTable(getBytes(edid.screenInfo32[0])))
     print("场刷新率(可能不准确):", refreshRate(getBytes(edid.screenInfo32[0])))
     print("额外的制式(可能不准确):")
     for x in range(0, len(extra_timing)):
