@@ -216,7 +216,7 @@ def refreshRate(table):
 
 
 # 这是用来获取文本流的函数
-def getSeream(stream, start, end):
+def getStream(stream, start, end):
     rlist = []
     for i in range(start, end):
         rlist.append(stream[i].to_bytes())
@@ -284,31 +284,31 @@ edid = EdidCore()
 with open(file, 'rb') as f:
     content = f.read()
 
-    edid.identifier = getSeream(content, 0, 8)
-    edid.vendor = getSeream(content, 8, 10)
-    edid.ID = getSeream(content, 10, 12)
-    edid.Serial32 = getSeream(content, 12, 16)
-    edid.madedate = getSeream(content, 16, 18)
-    edid.edidver = getSeream(content, 18, 20)
-    edid.inputmethod = getSeream(content, 20, 21)
-    edid.displaysize = getSeream(content, 21, 23)
-    edid.gamma = getSeream(content, 23, 24)
-    edid.dpms = getSeream(content, 24, 25)
-    edid.RGLo = getSeream(content, 25, 26)
-    edid.BWLo = getSeream(content, 26, 27)
-    edid.Rhi = getSeream(content, 27, 29)
-    edid.Ghi = getSeream(content, 29, 31)
-    edid.Bhi = getSeream(content, 31, 33)
-    edid.Whi = getSeream(content, 33, 35)
-    edid.Timing = getSeream(content, 35, 38)
-    edid.pixel = getSeream(content, 38, 39)
-    edid.screenInfo32 = getSeream(content, 39, 41)
-    edid.extraTiming = [getSeream(content, 41, 43), getSeream(content, 43, 45), getSeream(content, 45, 47),
-                        getSeream(content, 47, 49), getSeream(content, 49, 51), getSeream(content, 51, 53),
-                        getSeream(content, 53, 55)]
-    edid.frequency = getSeream(content, 55, 57)
-    edid.pixel2 = getSeream(content, 57, 60)
-    edid.pixel3 = getSeream(content, 60, 63)
+    edid.identifier = getStream(content, 0, 8)
+    edid.vendor = getStream(content, 8, 10)
+    edid.ID = getStream(content, 10, 12)
+    edid.Serial32 = getStream(content, 12, 16)
+    edid.madedate = getStream(content, 16, 18)
+    edid.edidver = getStream(content, 18, 20)
+    edid.inputmethod = getStream(content, 20, 21)
+    edid.displaysize = getStream(content, 21, 23)
+    edid.gamma = getStream(content, 23, 24)
+    edid.dpms = getStream(content, 24, 25)
+    edid.RGLo = getStream(content, 25, 26)
+    edid.BWLo = getStream(content, 26, 27)
+    edid.Rhi = getStream(content, 27, 29)
+    edid.Ghi = getStream(content, 29, 31)
+    edid.Bhi = getStream(content, 31, 33)
+    edid.Whi = getStream(content, 33, 35)
+    edid.Timing = getStream(content, 35, 38)
+    edid.pixel = getStream(content, 38, 39)
+    edid.screenInfo32 = getStream(content, 39, 41)
+    edid.extraTiming = [getStream(content, 41, 43), getStream(content, 43, 45), getStream(content, 45, 47),
+                        getStream(content, 47, 49), getStream(content, 49, 51), getStream(content, 51, 53),
+                        getStream(content, 53, 55)]
+    edid.frequency = getStream(content, 55, 57)
+    edid.pixel2 = getStream(content, 57, 60)
+    edid.pixel3 = getStream(content, 60, 63)
 
     timing_table = timingTable([getBytes(edid.Timing[0]),
                                 getBytes(edid.Timing[1]),
