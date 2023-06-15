@@ -148,42 +148,42 @@ def timingTable(table, order1='1', order2='2', vendor=True):
     timing2 = []
     vendor_timing = []
     if table[0][0] == '1':
-        timing1.append(" 720x400@70Hz [IBM,VGA] ")
+        timing1.append(" 720x400@70Hz <IBM,VGA> ")
     elif table[0][1] == '1':
-        timing1.append(" 720x400@88Hz [IBM,VGA2] ")
+        timing1.append(" 720x400@88Hz <IBM,VGA2> ")
     elif table[0][2] == '1':
-        timing1.append(" 640x480@60Hz [IBM,VGA] ")
+        timing1.append(" 640x480@60Hz <IBM,VGA> ")
     elif table[0][3] == '1':
-        timing1.append(" 640x680@66/67Hz [Apple,Mac II] ")
+        timing1.append(" 640x680@66/67Hz <Apple,Mac II> ")
     elif table[0][4] == '1':
-        timing1.append(" 640x480@72Hz [VESA] ")
+        timing1.append(" 640x480@72Hz <VESA> ")
     elif table[0][5] == '1':
-        timing1.append(" 640x480@75Hz [VESA] ")
+        timing1.append(" 640x480@75Hz <VESA> ")
     elif table[0][6] == '1':
-        timing1.append(" 800x600@56Hz [VESA] ")
+        timing1.append(" 800x600@56Hz <VESA> ")
     elif table[0][7] == '1':
-        timing1.append(" 800x600@60Hz [VESA] ")
+        timing1.append(" 800x600@60Hz <VESA> ")
 
     if table[1][0] == '1':
-        timing2.append(" 800x600@72Hz [VESA] ")
+        timing2.append(" 800x600@72Hz <VESA> ")
     elif table[1][1] == '1':
-        timing2.append(" 800x600@75Hz [VESA] ")
+        timing2.append(" 800x600@75Hz <VESA> ")
     elif table[1][2] == '1':
-        timing2.append(" 832x624@75Hz [Apple,Mac II] ")
+        timing2.append(" 832x624@75Hz <Apple,Mac II> ")
     elif table[1][3] == '1':
-        timing2.append(" 1024x768@87Hz (I) [IBM Interlaced] ")
+        timing2.append(" 1024x768@87Hz (I) <IBM Interlaced> ")
     elif table[1][4] == '1':
-        timing2.append(" 1024x768@60Hz [VESA] ")
+        timing2.append(" 1024x768@60Hz <VESA> ")
     elif table[1][5] == '1':
-        timing2.append(" 1024x768@70Hz [VESA] ")
+        timing2.append(" 1024x768@70Hz <VESA> ")
     elif table[1][6] == '1':
-        timing2.append(" 1024x760@75Hz [VESA] ")
+        timing2.append(" 1024x760@75Hz <VESA> ")
     elif table[1][7] == '1':
-        timing2.append(" 1280x1024@75Hz [VESA] ")
+        timing2.append(" 1280x1024@75Hz <VESA> ")
 
     if vendor:
         if table[2][0] == '1':
-            vendor_timing.append(" 1152x870@75Hz [Apple,Mac II] ")
+            vendor_timing.append(" 1152x870@75Hz <Apple,Mac II> ")
         tb = {
             "时序1": timing1,
             "时序2": timing2,
