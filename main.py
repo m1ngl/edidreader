@@ -227,6 +227,42 @@ def getStream(stream, start: int, end):
     return rlist
 
 
+def dumpMDD(mddblock: list):
+    tb = {}
+    if mddblock[2][0] == b'\xff' or mddblock[2][0] == b'\xfe' or mddblock[2][0] == b'\xfc':
+        tb["ASCII Code"] = ''
+        for byte in mddblock[4]:
+            tb["ASCII Code"] += byte.decode()
+    if mddblock[2][0] == b'\xfd':
+        tb["最低垂直速度"] = str(int.from_bytes(mddblock[3][0])) + " Hz"
+        tb["最高垂直速度"] = str(int.from_bytes(mddblock[4][0])) + " Hz"
+        tb["最低水平速度"] = str(int.from_bytes(mddblock[4][1])) + " kHz"
+        tb["最高水平速度"] = str(int.from_bytes(mddblock[4][2])) + " kHz"
+        tb["支持的最高像素时钟(根据四舍五入)"] = str(int.from_bytes(mddblock[4][3]) * 10) + " MHz"
+        if mddblock[4][4] == b'\x02':
+            tb["支持第二个GTF时序表"] = True
+        elif mddblock[4][4] == b'\x00':
+            tb["支持第二个GTF时序表"] = False
+    if mddblock[2][0] == b'\xfa':
+        tmTB = [
+            timingTable([getBytes(mddblock[3][0]), getBytes(mddblock[4][0])], '19', '20', False),
+            timingTable([getBytes(mddblock[4][1]), getBytes(mddblock[4][2])], '21', '22', False),
+            timingTable([getBytes(mddblock[4][3]), getBytes(mddblock[4][4])], '23', '24', False),
+            timingTable([getBytes(mddblock[4][5]), getBytes(mddblock[4][6])], '25', '26', False),
+            timingTable([getBytes(mddblock[4][7]), getBytes(mddblock[4][8])], '27', '28', False),
+            timingTable([getBytes(mddblock[4][9]), getBytes(mddblock[4][10])], '29', '30', False),
+        ]
+        tb["描述块里面的时序表"] = tmTB
+    #       b'\xfc'和第二个GTF时序表的功能还没写
+    return tb
+
+
+def edidVerify(edidFile):
+    checksum = 0
+    for x in range(0, 128):
+        checksum += int.from_bytes(edidFile[x], byteorder='big', signed=True)
+    return checksum
+
 # 信号Flags标志位
 def dumpFLags(flags: str):
     tb = {}
@@ -319,13 +355,13 @@ class EdidCore:
         #       白色空间高位 33-34字节
         self.Timing = [b'\x00', b'\x00', b'\x00']
         #       时序表1和2 35-37字节
-        self.pixel = [b'\x00']
-        #       水平的有效像素 38字节
-        self.screenInfo32 = [b'\x00', b'\x00']
-        #       屏幕的物理信息 39-40字节
-        self.extraTiming = [self.screenInfo32, self.screenInfo32, self.screenInfo32,
-                            self.screenInfo32, self.screenInfo32, self.screenInfo32,
-                            self.screenInfo32]
+        # self.pixel = [b'\x00']
+        # #       水平的有效像素 38字节
+        self.STI = [b'\x00', b'\x00']
+        #       新的标准把这里替换成8个时序表
+        self.extraTiming = [self.STI, self.STI, self.STI,
+                            self.STI, self.STI, self.STI,
+                            self.STI, self.STI]
         #       制造商可能在这里写下了额外的时序表，借用一个2字节的变量 41-54字节
         self.frequency = [b'\x00', b'\x00']
         #       像素时钟频率 55-56字节
@@ -341,9 +377,19 @@ class EdidCore:
         #       ??? 70-71字节
         self.flags = [b'\x00']
         #       一些其他的标志位 72字节
-        self.DTD = [[b'\x00', b'\x00', b'\x00'],
-                    [b'\x00'], [b'\x00'], [b'\x00']]
-        #       更详细的标志位 73-78字节
+        self.MDDescriptor = [
+            [b'\x00', b'\x00'],  # 验证位 2字节
+            [b'\x00'], [b'\x00'],  # 保留验证位和块类型位 1+1字节
+            [b'\x00'],  # 标志位 1字节
+            [b'\x00', b'\x00', b'\x00',
+             b'\x00', b'\x00', b'\x00',
+             b'\x00', b'\x00', b'\x00',
+             b'\x00', b'\x00', b'\x00',
+             b'\x00']  # 块的详细内容 13字节
+        ]
+        #       一个描述表块的定义 18字节/块
+        self.MDDTable = [self.MDDescriptor, self.MDDescriptor, self.MDDescriptor]
+        #       这样的块一共有三个 73-126字节
 
 
 edid = EdidCore()
@@ -367,26 +413,28 @@ with open(file, 'rb') as f:
     edid.Bhi = getStream(content, 31, 33)
     edid.Whi = getStream(content, 33, 35)
     edid.Timing = getStream(content, 35, 38)
-    edid.pixel = getStream(content, 38, 39)
-    edid.screenInfo32 = getStream(content, 39, 41)
-    edid.extraTiming = [getStream(content, 41, 43), getStream(content, 43, 45), getStream(content, 45, 47),
-                        getStream(content, 47, 49), getStream(content, 49, 51), getStream(content, 51, 53),
-                        getStream(content, 53, 55)]
-    edid.frequency = getStream(content, 55, 57)
-    edid.pixel2 = getStream(content, 57, 60)
-    edid.pixel3 = getStream(content, 60, 63)
-    edid.signalOffset = getStream(content, 63, 67)
-    edid.imageSize = getStream(content, 67, 70)
-    edid.borders = getStream(content, 70, 72)
+    edid.extraTiming = [getStream(content, 38, 40), getStream(content, 40, 42), getStream(content, 42, 44),
+                        getStream(content, 44, 46), getStream(content, 46, 48), getStream(content, 48, 50),
+                        getStream(content, 50, 52), getStream(content, 52, 54)]
+    edid.frequency = getStream(content, 54, 56)
+    edid.pixel2 = getStream(content, 56, 59)
+    edid.pixel3 = getStream(content, 59, 62)
+    edid.signalOffset = getStream(content, 62, 66)
+    edid.imageSize = getStream(content, 66, 69)
+    edid.borders = getStream(content, 69, 71)
 
-    edid.flags = getStream(content, 72, 73)
-    edid.DTD = [[getStream(content, 73, 76)], getStream(content, 76, 77),
-                getStream(content, 77, 78), getStream(content, 78, 79)]
-
+    edid.flags = getStream(content, 71, 72)
     timing_table = timingTable([getBytes(edid.Timing[0]),
                                 getBytes(edid.Timing[1]),
                                 getBytes(edid.Timing[2])])
-
+    edid.MDDTable = [
+        [getStream(content, 72, 74), getStream(content, 74, 75),
+         getStream(content, 75, 76), getStream(content, 76, 77), getStream(content, 77, 90)],
+        [getStream(content, 90, 92), getStream(content, 92, 93),
+         getStream(content, 93, 94), getStream(content, 94, 95), getStream(content, 95, 108)],
+        [getStream(content, 108, 110), getStream(content, 110, 111),
+         getStream(content, 111, 112), getStream(content, 112, 113), getStream(content, 113, 126)]
+    ]
     vendor_bytes = int(getBytes(edid.vendor[0], 256)) + int(getBytes(edid.vendor[1]))
     first = (vendor_bytes - (vendor_bytes % 10000000000)) / 10000000000
     second = (vendor_bytes % 10000000000 - vendor_bytes % 100000) / 100000
@@ -403,9 +451,6 @@ with open(file, 'rb') as f:
     else:
         serical_bytes = "0x" + serical_bytes
 
-    pixel_bytes = (int.from_bytes(edid.pixel[0]) + 32) * 8
-    if edid.pixel == [b'\x01']:
-        pixel_bytes = "N/A"
     madedate_bytes = {
         "week": int.from_bytes(edid.madedate[0]),
         "year": int.from_bytes(edid.madedate[1]) + 1990
@@ -455,6 +500,8 @@ with open(file, 'rb') as f:
                                  getBytes(edid.extraTiming[5][1])], '13', '14', False),
                     timingTable([getBytes(edid.extraTiming[6][0]),
                                  getBytes(edid.extraTiming[6][1])], '15', '16', False),
+                    timingTable([getBytes(edid.extraTiming[7][0]),
+                                 getBytes(edid.extraTiming[7][1])], '17', '18', False),
                     ]
 
     frequency_bytes = (int.from_bytes(edid.frequency[0]) * 256 + (int.from_bytes(edid.frequency[1]))) / 100
@@ -502,9 +549,6 @@ with open(file, 'rb') as f:
     print("支持的制式:")
     for x in timing_table:
         print("\t", x, " => ", timing_table[x])
-    print("可用的横向像素数量(可能不准确):", pixel_bytes)
-    print("屏幕尺寸比例(可能不准确):", propTable(getBytes(edid.screenInfo32[0])))
-    print("场刷新率(可能不准确):", refreshRate(getBytes(edid.screenInfo32[0])))
     print("额外的制式(可能不准确):")
     for x in range(0, len(extra_timing)):
         for y in extra_timing[x]:
@@ -523,7 +567,18 @@ with open(file, 'rb') as f:
     print("Horizontal Border out of display's addressable area written by vendor:", hborder)
     print("Vertical Border out of display's addressable area written by vendor:", vborder)
     print("信号标志位:")
-
     for x in flagsTable:
         print("\t", x, " => ", flagsTable[x])
-    
+    print("显示器的描述符表:")
+    mddtable = dumpMDD(edid.MDDTable[0])
+    for x in mddtable:
+        print("\t", x, " => ", mddtable[x])
+    mddtable = dumpMDD(edid.MDDTable[1])
+    for x in mddtable:
+        print("\t", x, " => ", mddtable[x])
+    mddtable = dumpMDD(edid.MDDTable[2])
+    for x in mddtable:
+        print("\t", x, " => ", mddtable[x])
+    sum = edidVerify(getStream(content, 0, 128))
+    print("最后的效验和(能和256整除代表有效):", sum)
+    print(sum, "% 256 =", sum % 256 == 0)
