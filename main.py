@@ -581,4 +581,4 @@ with open(file, 'rb') as f:
         print("\t", x, " => ", mddtable[x])
     sum = edidVerify(getStream(content, 0, 128))
     print("最后的效验和(能和256整除代表有效):", sum)
-    print(sum, "% 256 =", sum % 256 == 0)
+    print(sum, "% 256 == 0 ->", sum % 256 == 0)
