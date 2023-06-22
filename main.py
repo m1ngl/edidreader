@@ -526,6 +526,4 @@ with open(file, 'rb') as f:
 
     for x in flagsTable:
         print("\t", x, " => ", flagsTable[x])
-    print("\n\nDebug message below->>")
-    for x in edid.DTD:
-        print(x)
+    
