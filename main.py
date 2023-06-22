@@ -128,7 +128,11 @@ def inputTable(table):
 
 
 def dpmsTable(table):
-    tb = {"支持待机": table[0] == '1', "支持挂起": table[1] == '1', "Active Off/Very Low Power": table[2] == '1'}
+    tb = {
+        "是支持待机的": table[0] == '1',
+        "是支持挂起的": table[1] == '1',
+        "Active Off/Very Low Power": table[2] == '1'
+    }
     if table[3] == '1' and table[4] == '1':
         tb["显示类型"] = "Undefined"
     elif table[3] == '1' and table[4] == '0':
@@ -137,9 +141,9 @@ def dpmsTable(table):
         tb["显示类型"] = "非RGB多彩色显示"
     elif table[3] == '0' and table[4] == '0':
         tb["显示类型"] = "Monochrome / grayscale display (这个结果可能不准，我尝试了4个显示器都是这个结果)"
-    tb["使用了默认的sRGB色域"] = table[5] == '1'
-    tb["推荐分辨率是第一个详细描述的时序"] = table[6] == '1'
-    tb["支持GTF标准分辨率"] = table[7] == '1'
+    tb["是使用了默认的sRGB色域的"] = table[5] == '1'
+    tb["推荐分辨率是第一个详细描述的时序的"] = table[6] == '1'
+    tb["是支持GTF标准分辨率的"] = table[7] == '1'
     return tb
 
 
@@ -171,7 +175,7 @@ def timingTable(table, order1='1', order2='2', vendor=True):
     elif table[1][2] == '1':
         timing2.append(" 832x624@75Hz <Apple,Mac II> ")
     elif table[1][3] == '1':
-        timing2.append(" 1024x768@87Hz (I) <IBM Interlaced> ")
+        timing2.append(" 1024x768@87Hz (I) <IBM 信号交错> ")
     elif table[1][4] == '1':
         timing2.append(" 1024x768@60Hz <VESA> ")
     elif table[1][5] == '1':
@@ -216,11 +220,62 @@ def refreshRate(table):
 
 
 # 这是用来获取文本流的函数
-def getStream(stream, start, end):
+def getStream(stream, start: int, end):
     rlist = []
     for i in range(start, end):
         rlist.append(stream[i].to_bytes())
     return rlist
+
+
+# 信号Flags标志位
+def dumpFLags(flags: str):
+    tb = {}
+    tb["信号是交错的"] = flags[0] == 1
+    if tb["信号是交错的"]:
+        if flags[1] == '0' and flags[2] == '0':
+            tb["立体信号配置"] = "缺省值，没有立体信号"
+        elif flags[1] == '0' and flags[2] == '1' and flags[7] == '0':
+            if tb["信号是交错的"]:
+                tb["立体信号配置"] = "场序立体信号，右图像位于偶数行上"
+            else:
+                tb["立体信号配置"] = "场序立体信号"
+        elif flags[1] == '1' and flags[2] == '0' and flags[7] == '0':
+            if tb["信号是交错的"]:
+                tb["立体信号配置"] = "场序立体信号，左图像位于偶数行上"
+            else:
+                tb["立体信号配置"] = "场序立体信号"
+        elif flags[1] == '0' and flags[2] == '1' and flags[7] == '1':
+            tb["立体信号配置"] = "双路信号交错，右图像位于偶数行上"
+        elif flags[1] == '1' and flags[2] == '0' and flags[7] == '1':
+            tb["立体信号配置"] = "双路信号交错，左图像位于偶数行上"
+        elif flags[1] == '1' and flags[2] == '1' and flags[7] == '0':
+            tb["立体信号配置"] = "四路信号交错"
+        elif flags[1] == '1' and flags[2] == '1' and flags[7] == '1':
+            tb["立体信号配置"] = "并排交错信号"
+
+    if flags[3] == '0' and flags[4] == '0':
+        tb["同步信号合成方式"] = "模拟合成"
+        tb["抗锯齿"] = flags[5] == '1'
+        if flags[6] == '1':
+            tb["颜色脉冲同步"] = "三色同步"
+        else:
+            tb["颜色脉冲同步"] = "颜色只会在绿色信号同步"
+    elif flags[3] == '0' and flags[4] == '1':
+        tb["同步信号合成方式"] = "双极模拟合成"
+        tb["抗锯齿"] = flags[5] == '1'
+        if flags[6] == '1':
+            tb["颜色脉冲同步"] = "三色同步"
+        else:
+            tb["颜色脉冲同步"] = "颜色只会在绿色信号同步"
+    elif flags[3] == '1' and flags[4] == '0':
+        tb["同步信号合成方式"] = "数字合成"
+        tb["抗锯齿"] = flags[5] == '1'
+        tb["Hsync信号极性为正"] = flags[6] == '1'
+    elif flags[3] == '1' and flags[4] == '1':
+        tb["同步信号合成方式"] = "数字分离"
+        tb["Vsync信号极性为正"] = flags[5] == '1'
+        tb["Hsync信号极性为正"] = flags[6] == '1'
+    return tb
 
 
 # 这是用来将十六进制数值转化为二进制的函数，可以加权
@@ -278,6 +333,17 @@ class EdidCore:
         #       制造商的准确水平像素值 57-59字节
         self.pixel3 = [b'\x00', b'\x00', b'\x00']
         #       制造商的准确垂直像素值 60-62字节
+        self.signalOffset = [b'\x00', b'\x00', b'\x00', b'\x00']
+        #       制造商写的准确信号量偏移和脉冲信号宽度 63-66字节
+        self.imageSize = [b'\x00', b'\x00', b'\x00']
+        #       制造商写的图像尺寸 67-69字节
+        self.borders = [b'\x00', b'\x00']
+        #       ??? 70-71字节
+        self.flags = [b'\x00']
+        #       一些其他的标志位 72字节
+        self.DTD = [[b'\x00', b'\x00', b'\x00'],
+                    [b'\x00'], [b'\x00'], [b'\x00']]
+        #       更详细的标志位 73-78字节
 
 
 edid = EdidCore()
@@ -309,6 +375,13 @@ with open(file, 'rb') as f:
     edid.frequency = getStream(content, 55, 57)
     edid.pixel2 = getStream(content, 57, 60)
     edid.pixel3 = getStream(content, 60, 63)
+    edid.signalOffset = getStream(content, 63, 67)
+    edid.imageSize = getStream(content, 67, 70)
+    edid.borders = getStream(content, 70, 72)
+
+    edid.flags = getStream(content, 72, 73)
+    edid.DTD = [[getStream(content, 73, 76)], getStream(content, 76, 77),
+                getStream(content, 77, 78), getStream(content, 78, 79)]
 
     timing_table = timingTable([getBytes(edid.Timing[0]),
                                 getBytes(edid.Timing[1]),
@@ -390,6 +463,19 @@ with open(file, 'rb') as f:
     hvendorBlank_bytes = int(getBytes(edid.pixel2[1]), 2) + int(getBytes(edid.pixel2[2])[4:8], 2)
     vvendorPixel_bytes = int(getBytes(edid.pixel3[2])[:4], 2) * 256 + int(getBytes(edid.pixel3[0]), 2)
     vvendorBlank_bytes = int(getBytes(edid.pixel3[1]), 2) + int(getBytes(edid.pixel3[2])[4:8], 2)
+
+    hoffset = int(getBytes(edid.signalOffset[3], 256)[:2] + getBytes(edid.signalOffset[0]), 2)
+    hsignalwidth = int(getBytes(edid.signalOffset[3], 256)[2:4] + getBytes(edid.signalOffset[1]), 2)
+    voffset = int(getBytes(edid.signalOffset[3], 16)[4:6] + getBytes(edid.signalOffset[2])[:4], 2)
+    vsignalwidth = int(getBytes(edid.signalOffset[3], 16)[6:8] + getBytes(edid.signalOffset[2])[4:8], 2)
+
+    himageSize = int(getBytes(edid.imageSize[2])[:4] + getBytes(edid.imageSize[0]), 2)
+    vimageSize = int(getBytes(edid.imageSize[2])[4:8] + getBytes(edid.imageSize[1]), 2)
+    hborder = int.from_bytes(edid.borders[0])
+    vborder = int.from_bytes(edid.borders[1])
+
+    flagsTable = dumpFLags(getBytes(edid.flags[0]))
+
     if edid.identifier == [b'\x00', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\x00']:
         print("EDID有效")
     else:
@@ -428,3 +514,18 @@ with open(file, 'rb') as f:
     print("制造商写的横向空白像素数量:", hvendorBlank_bytes)
     print("制造商写的垂直像素数量:", vvendorPixel_bytes)
     print("制造商写的垂直空白像素数量:", vvendorBlank_bytes)
+    print("制造商写的水平信号偏移量:", hoffset)
+    print("制造商写的水平信号脉冲宽度:", hsignalwidth)
+    print("制造商写的垂直信号偏移量:", voffset)
+    print("制造商写的垂直信号脉冲宽度:", vsignalwidth)
+    print("制造商写的水平图像尺寸:", himageSize, "毫米")
+    print("制造商写的垂直图像尺寸:", vimageSize, "毫米")
+    print("Horizontal Border out of display's addressable area written by vendor:", hborder)
+    print("Vertical Border out of display's addressable area written by vendor:", vborder)
+    print("信号标志位:")
+
+    for x in flagsTable:
+        print("\t", x, " => ", flagsTable[x])
+    print("\n\nDebug message below->>")
+    for x in edid.DTD:
+        print(x)
