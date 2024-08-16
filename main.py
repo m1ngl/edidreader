@@ -232,7 +232,10 @@ def dumpMDD(mddblock: list):
     if mddblock[2][0] == b'\xff' or mddblock[2][0] == b'\xfe' or mddblock[2][0] == b'\xfc':
         tb["ASCII Code"] = ''
         for byte in mddblock[4]:
-            tb["ASCII Code"] += byte.decode()
+            try:
+                tb["ASCII Code"] += byte.decode()
+            except:
+                tb["ASCII Code"] += " <Can't be decoded.>" + str(byte) + " "
     if mddblock[2][0] == b'\xfd':
         tb["最低垂直速度"] = str(int.from_bytes(mddblock[3][0])) + " Hz"
         tb["最高垂直速度"] = str(int.from_bytes(mddblock[4][0])) + " Hz"
@@ -581,4 +584,4 @@ with open(file, 'rb') as f:
         print("\t", x, " => ", mddtable[x])
     sum = edidVerify(getStream(content, 0, 128))
     print("最后的效验和(能和256整除代表有效):", sum)
-    print(sum, "% 256 == 0 ->", sum % 256 == 0)
+    print(sum, "% 256 =", sum % 256)
